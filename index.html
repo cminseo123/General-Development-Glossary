@@ -547,21 +547,26 @@
         // ----------------------------------------------------------------------
         function FlipCard({ item, onRequestDelete, onEdit }) {
             const [flipped, setFlipped] = useState(false);
+            
             return (
                 <div className="h-64 relative group perspective-1000">
-                    {/* 버튼 그룹 (항상 렌더링하되, flipped 상태에 따라 opacity로 제어) */}
-                    <div className={`absolute top-4 right-4 z-50 flex gap-2 transition-opacity duration-300 ${flipped ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                    {/* 버튼 그룹: 카드 회전과 자연스럽게 어우러지도록 딜레이와 지속시간 조정 */}
+                    <div className={`absolute top-4 right-4 z-50 flex gap-2 transition-opacity duration-500 delay-100 ${flipped ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                          <button onClick={(e) => { e.stopPropagation(); onEdit(item); }} className="text-gray-300 hover:text-indigo-500 transition p-2 rounded-full hover:bg-indigo-50 bg-white/80 shadow-sm border border-transparent hover:border-indigo-100"><i className="fas fa-edit text-lg"></i></button>
                         <button onClick={(e) => { e.stopPropagation(); onRequestDelete(item.id); }} className="text-gray-300 hover:text-red-500 transition p-2 rounded-full hover:bg-red-50 bg-white/80 shadow-sm border border-transparent hover:border-red-100"><i className="fas fa-trash-alt text-lg"></i></button>
                     </div>
                     
-                    {/* 카드 회전 컨테이너: transition-transform만 사용하여 성능 최적화 */}
+                    {/* 카드 회전 컨테이너 */}
+                    {/* 1. duration-700: 0.7초 동안 천천히 회전 (고급스러운 느낌) */}
+                    {/* 2. willChange: GPU 가속을 강제하여 끊김 방지 */}
                     <div 
-                        className={`w-full h-full transition-transform duration-500 ease-in-out transform-style-3d cursor-pointer ${flipped ? 'rotate-y-180' : ''}`} 
+                        className={`w-full h-full transition-transform duration-700 ease-in-out transform-style-3d cursor-pointer ${flipped ? 'rotate-y-180' : ''}`} 
+                        style={{ willChange: 'transform' }}
                         onClick={() => setFlipped(!flipped)}
                     >
-                        {/* 앞면: z-10 제거, backface-hidden 유지 */}
-                        <div className="absolute w-full h-full backface-hidden bg-white rounded-xl shadow-md border border-gray-200 p-6 flex flex-col items-center justify-center hover:shadow-xl transition-shadow">
+                        {/* 앞면 */}
+                        {/* 중요: !flipped일 때만 hover 효과를 주어, 회전 중 그림자 계산으로 인한 버벅임 제거 */}
+                        <div className={`absolute w-full h-full backface-hidden bg-white rounded-xl shadow-md border border-gray-200 p-6 flex flex-col items-center justify-center transition-shadow duration-300 ${!flipped ? 'hover:shadow-xl' : ''}`}>
                             <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mb-4 text-indigo-600 text-2xl"><i className="fas fa-cube"></i></div>
                             <h3 className="text-2xl font-bold text-gray-800">{item.term}</h3>
                             <p className="text-gray-400 text-sm mt-2">클릭해서 뜻 확인하기</p>
