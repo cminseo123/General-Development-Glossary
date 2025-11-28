@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.cminseo123.twa",
+      "sha256_cert_fingerprints": [
+        "95:E0:56:1C:81:1E:F5:62:9A:97:FC:A1:D1:D8:8D:9D:87:0D:28:4D:26:18:AC:B8:CF:B8:EC:8C:3A:CD:30:1E"
+      ]
+    }
+  }
+]
