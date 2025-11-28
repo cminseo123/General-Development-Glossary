@@ -52,9 +52,15 @@
             
             // 모달 상태 관리
             const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-            const [deleteTargetId, setDeleteTargetId] = useState(null); // 삭제할 아이디 저장 (null이면 모달 닫힘)
+            const [isEditModalOpen, setIsEditModalOpen] = useState(false); // 수정 모달 상태
+            
+            const [deleteTargetId, setDeleteTargetId] = useState(null); 
 
+            // 입력 폼 상태 (추가용)
             const [newTerm, setNewTerm] = useState({ term: '', summary: '', analogy: '', usage: '' });
+            // 입력 폼 상태 (수정용)
+            const [editingTerm, setEditingTerm] = useState(null);
+
             const [copyFeedback, setCopyFeedback] = useState('');
 
             useEffect(() => {
@@ -69,7 +75,22 @@
                 setIsAddModalOpen(false);
             };
 
-            // 삭제 요청 (모달 띄우기)
+            // 수정 시작 (모달 열기)
+            const startEditing = (term) => {
+                setEditingTerm({...term}); // 객체 복사해서 상태 설정
+                setIsEditModalOpen(true);
+            };
+
+            // 수정 저장
+            const handleUpdateTerm = () => {
+                if (!editingTerm.term) return alert("용어를 입력해주세요!");
+                
+                setTerms(prevTerms => prevTerms.map(t => t.id === editingTerm.id ? editingTerm : t));
+                setIsEditModalOpen(false);
+                setEditingTerm(null);
+            };
+
+            // 삭제 요청
             const requestDelete = (id) => {
                 setDeleteTargetId(id);
             };
@@ -82,9 +103,9 @@
                 }
             };
 
-            const copyPromptToClipboard = () => {
-                if (!newTerm.term) return alert("먼저 용어를 입력하세요!");
-                const prompt = `지니야, '${newTerm.term}'라는 개발 용어가 뭐야? 내가 공부하는 '요약/비유/실전' 형식으로 표를 만들어줘.`;
+            const copyPromptToClipboard = (termValue) => {
+                if (!termValue) return alert("먼저 용어를 입력하세요!");
+                const prompt = `지니야, '${termValue}'라는 개발 용어가 뭐야? 내가 공부하는 '요약/비유/실전' 형식으로 표를 만들어줘.`;
                 
                 navigator.clipboard.writeText(prompt).then(() => {
                     setCopyFeedback('프롬프트 복사 완료! 지니에게 붙여넣으세요.');
@@ -121,13 +142,13 @@
                             <p className="text-gray-500 mt-2">비전공자를 위한 실전 개발 용어 위키</p>
                         </div>
                         <div className="flex gap-2 mt-4 md:mt-0">
-                            <button onClick={() => setViewMode('card')} className={`px-4 py-2 rounded-lg ${viewMode === 'card' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                            <button onClick={() => setViewMode('card')} className={`whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-sm md:text-base ${viewMode === 'card' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
                                 <i className="fas fa-th-large mr-2"></i>카드
                             </button>
-                            <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-lg ${viewMode === 'list' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                            <button onClick={() => setViewMode('list')} className={`whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-sm md:text-base ${viewMode === 'list' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
                                 <i className="fas fa-list mr-2"></i>리스트
                             </button>
-                            <button onClick={downloadCSV} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                            <button onClick={downloadCSV} className="whitespace-nowrap px-3 md:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm md:text-base">
                                 <i className="fas fa-file-excel mr-2"></i>엑셀 내보내기
                             </button>
                         </div>
@@ -137,7 +158,7 @@
                     {viewMode === 'card' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {terms.map(item => (
-                                <FlipCard key={item.id} item={item} onRequestDelete={requestDelete} />
+                                <FlipCard key={item.id} item={item} onRequestDelete={requestDelete} onEdit={startEditing} />
                             ))}
                             <div 
                                 onClick={() => setIsAddModalOpen(true)}
@@ -159,7 +180,7 @@
                                         <th className="p-4">요약</th>
                                         <th className="p-4 hidden md:table-cell">비유</th>
                                         <th className="p-4 hidden md:table-cell">실전 예시</th>
-                                        <th className="p-4 text-center">관리</th>
+                                        <th className="p-4 text-center w-24">관리</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -175,13 +196,22 @@
                                             </td>
                                             <td className="p-4 text-gray-500 italic hidden md:table-cell">"{item.usage}"</td>
                                             <td className="p-4 text-center">
-                                                <button 
-                                                    onClick={() => requestDelete(item.id)}
-                                                    className="text-gray-400 hover:text-red-500 transition p-2 rounded-full hover:bg-red-50"
-                                                    title="삭제하기"
-                                                >
-                                                    <i className="fas fa-trash-alt"></i>
-                                                </button>
+                                                <div className="flex justify-center gap-1">
+                                                    <button 
+                                                        onClick={() => startEditing(item)}
+                                                        className="text-gray-400 hover:text-indigo-500 transition p-2 rounded-full hover:bg-indigo-50"
+                                                        title="수정하기"
+                                                    >
+                                                        <i className="fas fa-edit"></i>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => requestDelete(item.id)}
+                                                        className="text-gray-400 hover:text-red-500 transition p-2 rounded-full hover:bg-red-50"
+                                                        title="삭제하기"
+                                                    >
+                                                        <i className="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -219,7 +249,7 @@
                                                 onChange={(e) => setNewTerm({...newTerm, term: e.target.value})}
                                             />
                                             <button 
-                                                onClick={copyPromptToClipboard}
+                                                onClick={() => copyPromptToClipboard(newTerm.term)}
                                                 className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-200 transition text-sm font-medium whitespace-nowrap"
                                                 title="지니에게 물어볼 질문 복사"
                                             >
@@ -276,7 +306,73 @@
                         </div>
                     )}
 
-                    {/* 삭제 확인 모달 (시스템 confirm 대체) */}
+                    {/* 수정 모달 (추가 모달과 구조 동일) */}
+                    {isEditModalOpen && editingTerm && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-fade-in">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 relative animate-scale-up">
+                                <button onClick={() => setIsEditModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                                    <i className="fas fa-times text-xl"></i>
+                                </button>
+                                
+                                <h2 className="text-2xl font-bold mb-1 text-gray-800">용어 수정하기</h2>
+                                <p className="text-sm text-gray-500 mb-6">내용을 고치고 저장하세요.</p>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">용어 (Term)</label>
+                                        <input 
+                                            type="text" 
+                                            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                            value={editingTerm.term}
+                                            onChange={(e) => setEditingTerm({...editingTerm, term: e.target.value})}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">한 줄 요약</label>
+                                        <input 
+                                            type="text" 
+                                            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                            value={editingTerm.summary}
+                                            onChange={(e) => setEditingTerm({...editingTerm, summary: e.target.value})}
+                                        />
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">비유 (Analogy)</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                value={editingTerm.analogy}
+                                                onChange={(e) => setEditingTerm({...editingTerm, analogy: e.target.value})}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">실전 예시</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                value={editingTerm.usage}
+                                                onChange={(e) => setEditingTerm({...editingTerm, usage: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 flex justify-end">
+                                    <button 
+                                        onClick={handleUpdateTerm}
+                                        className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200"
+                                    >
+                                        수정 완료
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 삭제 확인 모달 */}
                     {deleteTargetId && (
                         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-fade-in">
                             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-scale-up text-center">
@@ -306,25 +402,36 @@
             );
         }
 
-        function FlipCard({ item, onRequestDelete }) {
+        function FlipCard({ item, onRequestDelete, onEdit }) {
             const [flipped, setFlipped] = useState(false);
 
             return (
                 <div className="h-64 relative group perspective-1000">
                     
-                    {/* 삭제 버튼: 카드 뒤집기 영역 '밖'으로 완전히 분리하여 간섭 방지 */}
-                    {/* 앞면이 보일 때만 삭제 버튼 노출 */}
+                    {/* 버튼 그룹 (수정/삭제) - 카드 뒤집기 간섭 방지 처리 */}
                     {!flipped && (
-                        <button 
-                            onClick={(e) => {
-                                e.stopPropagation(); // 안전장치
-                                onRequestDelete(item.id);
-                            }}
-                            className="absolute top-4 right-4 z-50 text-gray-300 hover:text-red-500 transition p-2 rounded-full hover:bg-red-50 bg-white/80 shadow-sm border border-transparent hover:border-red-100"
-                            title="삭제하기"
-                        >
-                            <i className="fas fa-trash-alt text-lg"></i>
-                        </button>
+                        <div className="absolute top-4 right-4 z-50 flex gap-2">
+                             <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEdit(item);
+                                }}
+                                className="text-gray-300 hover:text-indigo-500 transition p-2 rounded-full hover:bg-indigo-50 bg-white/80 shadow-sm border border-transparent hover:border-indigo-100"
+                                title="수정하기"
+                            >
+                                <i className="fas fa-edit text-lg"></i>
+                            </button>
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation(); 
+                                    onRequestDelete(item.id);
+                                }}
+                                className="text-gray-300 hover:text-red-500 transition p-2 rounded-full hover:bg-red-50 bg-white/80 shadow-sm border border-transparent hover:border-red-100"
+                                title="삭제하기"
+                            >
+                                <i className="fas fa-trash-alt text-lg"></i>
+                            </button>
+                        </div>
                     )}
 
                     {/* 실제 카드가 뒤집히는 영역 */}
